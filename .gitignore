@@ -1,0 +1,15 @@
+# Microchip / Atmel Studio
+Debug/
+Release/
+.vs/
+
+# Archivos generados
+*.o
+*.obj
+*.map
+*.lss
+*.elf
+*.hex
+*.eep
+*.bin
+*.log
