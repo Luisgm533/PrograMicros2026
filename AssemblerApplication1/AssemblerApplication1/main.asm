@@ -31,7 +31,7 @@ OUT PORTB, R16
 ; PORTC:
 // PC0..PC3 = LEDs Contador2 (salidas)
 // PC4      = LED Carry (salida)
-// PC5      = BotÛn SUMA (entrada)
+// PC5      = Bot√≥n SUMA (entrada)
 
 
 LDI R16, 0b00011111 ; PC0..PC4 salidas, PC5 entrada
@@ -87,7 +87,7 @@ RJMP C1_CHECK_INC
 C1_DEC_PRES:
 CALL ANTIREBOTE_DELAY
 IN   R18, PIND
-SBRS R18, 5     ; si ya se soltÛ (1) entonces no  debe de contar
+SBRS R18, 5     ; si ya se solt√≥ (1) entonces no  debe de contar
 RJMP C1_DEC_REAL
 RJMP C1_CHECK_INC
 
@@ -214,7 +214,7 @@ RET
 
 BOTON_SUMA_MOSTRAR_EN_CLICK:
 
-; Si PC5 est· suelto (1) -> salir sin cambiar nada
+; Si PC5 est√° suelto (1) -> salir sin cambiar nada
 IN   R19, PINC
 SBRC R19, 5
 RJMP FIN_SUMA
@@ -224,7 +224,7 @@ A5_PRESIONADO:
 ; Antirebote
 CALL ANTIREBOTE_DELAY
 IN   R19, PINC
-SBRC R19, 5              ; si se soltÛ durante antirebote -> salir
+SBRC R19, 5              ; si se solt√≥ durante antirebote entonces, salir
 RJMP FIN_SUMA
 RJMP CALCULAR_Y_MOSTRAR
 
@@ -250,7 +250,7 @@ CBI  PORTC, 4 // Carry OFF
 
 ESPERAR_SOLTAR_A5:
 
-// Esperar a soltar para que 1 click = 1 acciÛn
+// Esperar a soltar para que 1 click = 1 acci√≥n
 IN   R19, PINC
 SBRC R19, 5
 RJMP FIN_SUMA
