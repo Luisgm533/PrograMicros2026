@@ -1,0 +1,58 @@
+<ASSEMBLER_INFO>
+ <VERSION>2.2.8</VERSION>
+ <DEVICE>"ATmega328P"</DEVICE>
+ <WORKING_DIR>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\Debug</WORKING_DIR>
+ <INCLUDE_PATH>
+  <DIR>C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc</DIR>
+  <DIR>C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avrassembler\Include</DIR>
+  <DIR></DIR>
+ </INCLUDE_PATH>
+ <SOURCE_FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</SOURCE_FILE>
+ <INCLUDED_FILES>
+  <FILE>C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc</FILE>
+  <FILE>C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\M328PDEF.inc</FILE>
+ </INCLUDED_FILES>
+ <OBJECT_FILES>
+  <FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\Debug\AssemblerApplication1.obj</FILE>
+ </OBJECT_FILES>
+ <HEX_FILES>
+  <FILE>AssemblerApplication1.hex</FILE>
+ </HEX_FILES>
+ <OUTPUT_FILES>
+  <FILE>AssemblerApplication1.map</FILE>
+  <FILE>AssemblerApplication1.lss</FILE>
+ </OUTPUT_FILES>
+ <LABELS>
+  <SETUP><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>19</LINE></SETUP>
+  <LOOP><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>66</LINE></LOOP>
+  <LEER_BOTONES_C1><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>79</LINE></LEER_BOTONES_C1>
+  <LEER_BOTONES_C2><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>135</LINE></LEER_BOTONES_C2>
+  <MOSTRAR_C1_EN_PORTD><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>190</LINE></MOSTRAR_C1_EN_PORTD>
+  <MOSTRAR_C2_EN_PORTC><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>203</LINE></MOSTRAR_C2_EN_PORTC>
+  <BOTON_SUMA_MOSTRAR_EN_CLICK><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>215</LINE></BOTON_SUMA_MOSTRAR_EN_CLICK>
+  <C1_DEC_PRES><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>87</LINE></C1_DEC_PRES>
+  <C1_CHECK_INC><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>105</LINE></C1_CHECK_INC>
+  <ANTIREBOTE_DELAY><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>265</LINE></ANTIREBOTE_DELAY>
+  <C1_DEC_REAL><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>94</LINE></C1_DEC_REAL>
+  <C1_WAIT_DEC_RELEASE><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>98</LINE></C1_WAIT_DEC_RELEASE>
+  <C1_FIN><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>128</LINE></C1_FIN>
+  <C1_INC_PRES><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>112</LINE></C1_INC_PRES>
+  <C1_INC_REAL><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>119</LINE></C1_INC_REAL>
+  <C1_WAIT_INC_RELEASE><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>123</LINE></C1_WAIT_INC_RELEASE>
+  <C2_DEC_PRES><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>143</LINE></C2_DEC_PRES>
+  <C2_CHECK_INC><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>161</LINE></C2_CHECK_INC>
+  <C2_DEC_REAL><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>150</LINE></C2_DEC_REAL>
+  <C2_WAIT_DEC_RELEASE><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>154</LINE></C2_WAIT_DEC_RELEASE>
+  <C2_FIN><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>183</LINE></C2_FIN>
+  <C2_INC_PRES><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>167</LINE></C2_INC_PRES>
+  <C2_INC_REAL><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>174</LINE></C2_INC_REAL>
+  <C2_WAIT_INC_RELEASE><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>178</LINE></C2_WAIT_INC_RELEASE>
+  <FIN_SUMA><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>259</LINE></FIN_SUMA>
+  <A5_PRESIONADO><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>223</LINE></A5_PRESIONADO>
+  <CALCULAR_Y_MOSTRAR><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>231</LINE></CALCULAR_Y_MOSTRAR>
+  <SIN_CARRY_4BIT><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>248</LINE></SIN_CARRY_4BIT>
+  <ESPERAR_SOLTAR_A5><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>251</LINE></ESPERAR_SOLTAR_A5>
+  <DELAY><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>268</LINE></DELAY>
+  <DLOOP><FILE>C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\AssemblerApplication1\AssemblerApplication1\main.asm</FILE><LINE>271</LINE></DLOOP>
+ </LABELS>
+</ASSEMBLER_INFO>
