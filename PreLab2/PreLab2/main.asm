@@ -8,10 +8,14 @@ rjmp RESET
 
 RESET:
 
+
+
 LDI R16, LOW(RAMEND)
 OUT SPL, R16
 LDI R16, HIGH(RAMEND)
 OUT SPH, R16
+
+
 
 // LEDs de PD2 al PD5 salida
 LDI R16, 0b00111100
@@ -22,6 +26,8 @@ LDI R16, 0x00
 OUT TCCR0A, R16
 LDI R16, 0x05
 OUT TCCR0B, R16
+
+
 
 // limpiar bandera overflow
 LDI R16, (1<<TOV0)

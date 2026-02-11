@@ -1,12 +1,12 @@
 
-AVRASM ver. 2.2.8  C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\PreLab2\PreLab2\main.asm Wed Feb 11 11:11:03 2026
+AVRASM ver. 2.2.8  C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\PreLab2\PreLab2\main.asm Wed Feb 11 12:55:33 2026
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\PreLab2\PreLab2\main.asm(4): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\M328PDEF.inc'
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\PreLab2\PreLab2\main.asm(4): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\M328PDEF.inc'
                                  
-                                 
+                                 ;Luis Guerra
                                  
                                  ;***** Created: 2011-02-09 12:03 ******* Source: ATmega328P.xml **********
                                  ;*************************************************************************
@@ -1039,10 +1039,14 @@ C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\PreLab2\PreLab2\main.
                                  
                                  RESET:
                                  
+                                 
+                                 
 000001 ef0f                      LDI R16, LOW(RAMEND)
 000002 bf0d                      OUT SPL, R16
 000003 e008                      LDI R16, HIGH(RAMEND)
 000004 bf0e                      OUT SPH, R16
+                                 
+                                 
                                  
                                  // LEDs de PD2 al PD5 salida
 000005 e30c                      LDI R16, 0b00111100
@@ -1053,6 +1057,8 @@ C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\PreLab2\PreLab2\main.
 000008 bd04                      OUT TCCR0A, R16
 000009 e005                      LDI R16, 0x05
 00000a bd05                      OUT TCCR0B, R16
+                                 
+                                 
                                  
                                  // limpiar bandera overflow
 00000b e001                      LDI R16, (1<<TOV0)
@@ -1087,10 +1093,10 @@ C:\Users\luisg\OneDrive\Documentos\GitHub\PrograMicros2026\PreLab2\PreLab2\main.
                                  // mostrar en PD2 al PD5
                                  
 00001a b10b                      IN   R16, PORTD
-00001b 7c03                      ANDI R16, 0b11000011     ; limpia PD2..PD5
+00001b 7c03                      ANDI R16, 0b11000011   // limpia PD2..PD5
 00001c 2f34                      MOV  R19, R20
 00001d 0f33                      LSL  R19
-00001e 0f33                      LSL  R19                 ; (R20 << 2) -> PD2..PD5
+00001e 0f33                      LSL  R19                 ; (R20 << 2)  PD2..PD5
 00001f 733c                      ANDI R19, 0b00111100
 000020 2b03                      OR   R16, R19
 000021 b90b                      OUT  PORTD, R16
