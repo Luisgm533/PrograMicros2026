@@ -56,10 +56,10 @@ ANDI R20, 0x0F
 // mostrar en PD2 al PD5
 
 IN   R16, PORTD
-ANDI R16, 0b11000011     ; limpia PD2..PD5
+ANDI R16, 0b11000011   // limpia PD2..PD5
 MOV  R19, R20
 LSL  R19
-LSL  R19                 ; (R20 << 2) -> PD2..PD5
+LSL  R19                 ; (R20 << 2)  PD2..PD5
 ANDI R19, 0b00111100
 OR   R16, R19
 OUT  PORTD, R16
