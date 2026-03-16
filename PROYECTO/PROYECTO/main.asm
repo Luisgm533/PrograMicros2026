@@ -1,0 +1,1013 @@
+;
+; PROYECTO.asm
+;
+
+; Author : luisg
+;
+
+.include "m328pdef.inc"
+
+; =========================================================
+; RELOJ + FECHA + ALARMA
+; ATmega328P
+; =========================================================
+
+.cseg
+.org 0x0000
+    RJMP START
+
+.org OVF0addr
+    RJMP TIMER0_ISR
+
+.org 0x0200
+
+; =========================
+; Pines
+; =========================
+.equ BTN_MODE = PB0
+.equ BTN_EDIT = PB1
+.equ BTN_UP   = PB2
+.equ BTN_DOWN = PB3
+
+.equ DISP1 = PB4
+.equ DISP2 = PB5
+.equ DISP3 = PC4
+.equ DISP4 = PC5
+
+.equ LED_HORA  = PC0
+.equ LED_FECHA = PC1
+.equ BUZZER    = PC2
+
+; =========================
+; Constantes
+; =========================
+.equ PRESCALER0   = (1<<CS02) | (1<<CS00)
+.equ TIMER_START0 = 254
+.equ HALFSEC      = 244
+
+.equ MODE_HORA    = 0
+.equ MODE_FECHA   = 1
+.equ MODE_ALARMA  = 2
+
+.equ EDIT_OFF     = 0
+.equ EDIT_FIRST   = 1
+.equ EDIT_LAST    = 2
+
+; =========================
+; Registros altos
+; =========================
+.def TMP          = R16
+.def TMP2         = R17
+.def MUX          = R18
+.def TICKS        = R19
+.def HALF         = R20
+.def SECS         = R21
+.def MINS         = R22
+.def HOURS        = R23
+.def MODE         = R24
+.def EDIT         = R25
+
+; =========================
+; Registros bajos
+; =========================
+.def MONTHS       = R2
+.def DAYS         = R3
+.def ALM_HOURS    = R4
+.def ALM_MINS     = R5
+
+.def DB1          = R6
+.def DB2          = R7
+.def DB3          = R8
+.def DB4          = R9
+
+.def ALARM_ACTIVE = R10
+.def ALARM_LATCH  = R11
+
+; =========================
+; START
+; =========================
+START:
+    ; Stack
+    LDI TMP, LOW(RAMEND)
+    OUT SPL, TMP
+    LDI TMP, HIGH(RAMEND)
+    OUT SPH, TMP
+
+    ; Clock a 1 MHz
+    LDI TMP, (1<<CLKPCE)
+    STS CLKPR, TMP
+    LDI TMP, (1<<CLKPS2)
+    STS CLKPR, TMP
+
+    ; PORTD = segmentos
+    LDI TMP, 0x7F
+    OUT DDRD, TMP
+    CLR TMP
+    OUT PORTD, TMP
+
+    ; PORTB = botones + displays 1 y 2
+    LDI TMP, (1<<BTN_MODE)|(1<<BTN_EDIT)|(1<<BTN_UP)|(1<<BTN_DOWN)
+    OUT PORTB, TMP
+
+    LDI TMP, (1<<DISP1)|(1<<DISP2)
+    OUT DDRB, TMP
+
+    ; PORTC = LEDs + buzzer + displays 3 y 4
+    LDI TMP, (1<<LED_HORA)|(1<<LED_FECHA)|(1<<BUZZER)|(1<<DISP3)|(1<<DISP4)
+    OUT DDRC, TMP
+
+    ; apagar salidas
+    CBI PORTB, DISP1
+    CBI PORTB, DISP2
+    CBI PORTC, DISP3
+    CBI PORTC, DISP4
+    CBI PORTC, LED_HORA
+    CBI PORTC, LED_FECHA
+    CBI PORTC, BUZZER
+
+    ; Inicialización
+    LDI HOURS, 12
+    CLR MINS
+    CLR SECS
+
+    LDI TMP, 3
+    MOV MONTHS, TMP
+    LDI TMP, 25
+    MOV DAYS, TMP
+
+    CLR ALM_HOURS
+    CLR ALM_MINS
+
+    CLR ALARM_ACTIVE
+    CLR ALARM_LATCH
+
+    CLR MODE
+    CLR EDIT
+    CLR TICKS
+    CLR HALF
+    CLR MUX
+
+    RCALL RESET_TIMER0
+    SEI
+
+MAIN:
+    RCALL UPDATE_DIGITS
+    RCALL UPDATE_MODE_LEDS
+    RCALL READ_BUTTONS
+    RJMP MAIN
+
+; =========================
+; TIMER0
+; =========================
+RESET_TIMER0:
+    LDI TMP, PRESCALER0
+    OUT TCCR0B, TMP
+
+    LDI TMP, TIMER_START0
+    OUT TCNT0, TMP
+
+    LDI TMP, (1<<TOIE0)
+    STS TIMSK0, TMP
+    RET
+
+TIMER0_ISR:
+    PUSH R16
+    PUSH R17
+    IN   R16, SREG
+    PUSH R16
+
+    RCALL RESET_TIMER0
+
+    ; Multiplexado
+    INC MUX
+    MOV TMP, MUX
+    CPI TMP, 4
+    BRLO T0_MUX_OK
+    CLR MUX
+T0_MUX_OK:
+    RCALL DISPLAY
+
+    ; Base de tiempo ~500 ms
+    INC TICKS
+    MOV TMP, TICKS
+    CPI TMP, HALFSEC
+    BRNE T0_ALARM_LOGIC
+
+    CLR TICKS
+
+    ; contar segundos
+    INC HALF
+    MOV TMP, HALF
+    CPI TMP, 2
+    BRLO T0_ALARM_LOGIC
+
+    CLR HALF
+
+    ; reloj corre solo si no se está editando
+    MOV TMP, EDIT
+    CPI TMP, EDIT_OFF
+    BRNE T0_ALARM_LOGIC
+
+    INC SECS
+    MOV TMP, SECS
+    CPI TMP, 60
+    BRLO T0_ALARM_LOGIC
+
+    CLR SECS
+    INC MINS
+    MOV TMP, MINS
+    CPI TMP, 60
+    BRLO T0_ALARM_LOGIC
+
+    CLR MINS
+    INC HOURS
+    MOV TMP, HOURS
+    CPI TMP, 24
+    BRLO T0_DAY_CHECK
+
+    CLR HOURS
+
+T0_DAY_CHECK:
+    MOV TMP, HOURS
+    CPI TMP, 0
+    BRNE T0_ALARM_LOGIC
+    MOV TMP, MINS
+    CPI TMP, 0
+    BRNE T0_ALARM_LOGIC
+    RCALL INCREMENT_DAY_AUTO
+
+T0_ALARM_LOGIC:
+    ; Si ya fue silenciada y sigue en el mismo minuto, no volver a sonar
+    MOV TMP, ALARM_LATCH
+    TST TMP
+    BREQ T0_CHECK_TRIGGER
+
+    ; si ya no coincide, liberar latch
+    MOV TMP, HOURS
+    CP  TMP, ALM_HOURS
+    BRNE T0_CLEAR_LATCH
+
+    MOV TMP, MINS
+    CP  TMP, ALM_MINS
+    BRNE T0_CLEAR_LATCH
+
+    ; sigue coincidiendo: mantener estado actual
+    RJMP T0_BUZZ_OUTPUT
+
+T0_CLEAR_LATCH:
+    CLR ALARM_LATCH
+    RJMP T0_BUZZ_OUTPUT
+
+T0_CHECK_TRIGGER:
+    ; no disparar si está editando
+    MOV TMP, EDIT
+    CPI TMP, EDIT_OFF
+    BRNE T0_BUZZ_OUTPUT
+
+    ; comparar hora/min actual con alarma
+    MOV TMP, HOURS
+    CP  TMP, ALM_HOURS
+    BRNE T0_BUZZ_OUTPUT
+
+    MOV TMP, MINS
+    CP  TMP, ALM_MINS
+    BRNE T0_BUZZ_OUTPUT
+
+    ; dispara alarma
+    LDI TMP, 1
+    MOV ALARM_ACTIVE, TMP
+    MOV ALARM_LATCH, TMP
+
+T0_BUZZ_OUTPUT:
+    MOV TMP, ALARM_ACTIVE
+    TST TMP
+    BREQ T0_BUZZ_OFF
+
+    SBI PORTC, BUZZER
+    RJMP T0_END
+
+T0_BUZZ_OFF:
+    CBI PORTC, BUZZER
+
+T0_END:
+    POP R16
+    OUT SREG, R16
+    POP R17
+    POP R16
+    RETI
+
+; =========================
+; LEDs de modo
+; Hora   -> solo LED_HORA
+; Fecha  -> solo LED_FECHA
+; Alarma -> ambos
+; =========================
+UPDATE_MODE_LEDS:
+    CBI PORTC, LED_HORA
+    CBI PORTC, LED_FECHA
+
+    MOV TMP, MODE
+    CPI TMP, MODE_HORA
+    BREQ UML_HORA
+
+    MOV TMP, MODE
+    CPI TMP, MODE_FECHA
+    BREQ UML_FECHA
+
+    ; modo alarma
+    SBI PORTC, LED_HORA
+    SBI PORTC, LED_FECHA
+    RET
+
+UML_HORA:
+    SBI PORTC, LED_HORA
+    RET
+
+UML_FECHA:
+    SBI PORTC, LED_FECHA
+    RET
+
+; =========================
+; UPDATE_DIGITS
+; =========================
+UPDATE_DIGITS:
+    MOV TMP, MODE
+    CPI TMP, MODE_HORA
+    BREQ UD_HORA_NEAR
+
+    MOV TMP, MODE
+    CPI TMP, MODE_FECHA
+    BREQ UD_FECHA_NEAR
+
+    RJMP UD_BUILD_ALARMA
+
+UD_HORA_NEAR:
+    RJMP UD_BUILD_HORA
+
+UD_FECHA_NEAR:
+    RJMP UD_BUILD_FECHA
+
+UD_BUILD_ALARMA:
+    MOV TMP, ALM_HOURS
+    RCALL DIV10
+    MOV DB1, TMP
+
+    MOV TMP, ALM_HOURS
+    RCALL MOD10
+    MOV DB2, TMP
+
+    MOV TMP, ALM_MINS
+    RCALL DIV10
+    MOV DB3, TMP
+
+    MOV TMP, ALM_MINS
+    RCALL MOD10
+    MOV DB4, TMP
+    RET
+
+UD_BUILD_FECHA:
+    MOV TMP, MONTHS
+    RCALL DIV10
+    MOV DB1, TMP
+
+    MOV TMP, MONTHS
+    RCALL MOD10
+    MOV DB2, TMP
+
+    MOV TMP, DAYS
+    RCALL DIV10
+    MOV DB3, TMP
+
+    MOV TMP, DAYS
+    RCALL MOD10
+    MOV DB4, TMP
+    RET
+
+UD_BUILD_HORA:
+    MOV TMP, HOURS
+    RCALL DIV10
+    MOV DB1, TMP
+
+    MOV TMP, HOURS
+    RCALL MOD10
+    MOV DB2, TMP
+
+    MOV TMP, MINS
+    RCALL DIV10
+    MOV DB3, TMP
+
+    MOV TMP, MINS
+    RCALL MOD10
+    MOV DB4, TMP
+    RET
+
+; =========================
+; DISPLAY
+; =========================
+DISPLAY:
+    CBI PORTB, DISP1
+    CBI PORTB, DISP2
+    CBI PORTC, DISP3
+    CBI PORTC, DISP4
+
+    MOV TMP, MUX
+    CPI TMP, 0
+    BREQ DISP1_NEAR
+    MOV TMP, MUX
+    CPI TMP, 1
+    BREQ DISP2_NEAR
+    MOV TMP, MUX
+    CPI TMP, 2
+    BREQ DISP3_NEAR
+    RJMP DISP_D4
+
+DISP1_NEAR:
+    RJMP DISP_D1
+DISP2_NEAR:
+    RJMP DISP_D2
+DISP3_NEAR:
+    RJMP DISP_D3
+
+DISP_D1:
+    MOV TMP, DB1
+    RCALL SEGMENT
+    SBI PORTB, DISP1
+    RET
+
+DISP_D2:
+    MOV TMP, DB2
+    RCALL SEGMENT
+    SBI PORTB, DISP2
+    RET
+
+DISP_D3:
+    MOV TMP, DB3
+    RCALL SEGMENT
+    SBI PORTC, DISP3
+    RET
+
+DISP_D4:
+    MOV TMP, DB4
+    RCALL SEGMENT
+    SBI PORTC, DISP4
+    RET
+
+; =========================
+; BOTONES
+; Si la alarma está activa, cualquier botón solo la silencia
+; y NO ejecuta otra función.
+; =========================
+READ_BUTTONS:
+    MOV TMP, ALARM_ACTIVE
+    TST TMP
+    BREQ RB_NORMAL
+
+    SBIS PINB, BTN_MODE
+    RJMP SILENCE_ALARM
+    SBIS PINB, BTN_EDIT
+    RJMP SILENCE_ALARM
+    SBIS PINB, BTN_UP
+    RJMP SILENCE_ALARM
+    SBIS PINB, BTN_DOWN
+    RJMP SILENCE_ALARM
+    RET
+
+SILENCE_ALARM:
+    RCALL DEBOUNCE
+    CLR ALARM_ACTIVE
+    CBI PORTC, BUZZER
+
+SA_WAIT_RELEASE:
+    SBIS PINB, BTN_MODE
+    RJMP SA_WAIT_RELEASE
+    SBIS PINB, BTN_EDIT
+    RJMP SA_WAIT_RELEASE
+    SBIS PINB, BTN_UP
+    RJMP SA_WAIT_RELEASE
+    SBIS PINB, BTN_DOWN
+    RJMP SA_WAIT_RELEASE
+    RET
+
+RB_NORMAL:
+    SBIS PINB, BTN_MODE
+    RCALL HANDLE_MODE
+
+    SBIS PINB, BTN_EDIT
+    RCALL HANDLE_EDIT
+
+    SBIS PINB, BTN_UP
+    RCALL HANDLE_UP
+
+    SBIS PINB, BTN_DOWN
+    RCALL HANDLE_DOWN
+    RET
+
+HANDLE_MODE:
+    RCALL DEBOUNCE
+    SBIC PINB, BTN_MODE
+    RET
+
+    MOV TMP, MODE
+    CPI TMP, MODE_HORA
+    BREQ HM_FECHA_NEAR
+
+    MOV TMP, MODE
+    CPI TMP, MODE_FECHA
+    BREQ HM_ALARMA_NEAR
+
+    CLR MODE
+    CLR EDIT
+    RJMP HM_WAIT_REL
+
+HM_FECHA_NEAR:
+    LDI MODE, MODE_FECHA
+    CLR EDIT
+    RJMP HM_WAIT_REL
+
+HM_ALARMA_NEAR:
+    LDI MODE, MODE_ALARMA
+    CLR EDIT
+
+HM_WAIT_REL:
+    SBIS PINB, BTN_MODE
+    RJMP HM_WAIT_REL
+    RET
+
+HANDLE_EDIT:
+    RCALL DEBOUNCE
+    SBIC PINB, BTN_EDIT
+    RET
+
+    MOV TMP, EDIT
+    CPI TMP, EDIT_OFF
+    BREQ HE_FIRST_NEAR
+
+    MOV TMP, EDIT
+    CPI TMP, EDIT_FIRST
+    BREQ HE_LAST_NEAR
+
+    CLR EDIT
+    RJMP HE_WAIT_REL
+
+HE_FIRST_NEAR:
+    LDI EDIT, EDIT_FIRST
+    RJMP HE_WAIT_REL
+
+HE_LAST_NEAR:
+    LDI EDIT, EDIT_LAST
+
+HE_WAIT_REL:
+    SBIS PINB, BTN_EDIT
+    RJMP HE_WAIT_REL
+    RET
+
+HANDLE_UP:
+    RCALL DEBOUNCE
+    SBIC PINB, BTN_UP
+    RET
+
+    MOV TMP, MODE
+    CPI TMP, MODE_HORA
+    BREQ HU_HORA_NEAR
+
+    MOV TMP, MODE
+    CPI TMP, MODE_FECHA
+    BREQ HU_FECHA_NEAR
+
+    RJMP HU_ALARMA
+
+HU_HORA_NEAR:
+    RJMP HU_HORA
+HU_FECHA_NEAR:
+    RJMP HU_FECHA
+
+HU_ALARMA:
+    MOV TMP, EDIT
+    CPI TMP, EDIT_FIRST
+    BREQ HU_ALM_H_NEAR
+    MOV TMP, EDIT
+    CPI TMP, EDIT_LAST
+    BREQ HU_ALM_M_NEAR
+    RJMP HU_WAIT_REL
+
+HU_ALM_H_NEAR:
+    RJMP INC_ALM_HOUR
+HU_ALM_M_NEAR:
+    RJMP INC_ALM_MIN
+
+HU_FECHA:
+    MOV TMP, EDIT
+    CPI TMP, EDIT_FIRST
+    BREQ HU_MON_NEAR
+    MOV TMP, EDIT
+    CPI TMP, EDIT_LAST
+    BREQ HU_DAY_NEAR
+    RJMP HU_WAIT_REL
+
+HU_MON_NEAR:
+    RJMP INC_MONTH
+HU_DAY_NEAR:
+    RJMP INC_DAY
+
+HU_HORA:
+    MOV TMP, EDIT
+    CPI TMP, EDIT_FIRST
+    BREQ HU_HOUR_NEAR
+    MOV TMP, EDIT
+    CPI TMP, EDIT_LAST
+    BREQ HU_MIN_NEAR
+
+HU_WAIT_REL:
+    SBIS PINB, BTN_UP
+    RJMP HU_WAIT_REL
+    RET
+
+HU_HOUR_NEAR:
+    RJMP INC_HOUR
+HU_MIN_NEAR:
+    RJMP INC_MIN
+
+HANDLE_DOWN:
+    RCALL DEBOUNCE
+    SBIC PINB, BTN_DOWN
+    RET
+
+    MOV TMP, MODE
+    CPI TMP, MODE_HORA
+    BREQ HD_HORA_NEAR
+
+    MOV TMP, MODE
+    CPI TMP, MODE_FECHA
+    BREQ HD_FECHA_NEAR
+
+    RJMP HD_ALARMA
+
+HD_HORA_NEAR:
+    RJMP HD_HORA
+HD_FECHA_NEAR:
+    RJMP HD_FECHA
+
+HD_ALARMA:
+    MOV TMP, EDIT
+    CPI TMP, EDIT_FIRST
+    BREQ HD_ALM_H_NEAR
+    MOV TMP, EDIT
+    CPI TMP, EDIT_LAST
+    BREQ HD_ALM_M_NEAR
+    RJMP HD_WAIT_REL
+
+HD_ALM_H_NEAR:
+    RJMP DEC_ALM_HOUR
+HD_ALM_M_NEAR:
+    RJMP DEC_ALM_MIN
+
+HD_FECHA:
+    MOV TMP, EDIT
+    CPI TMP, EDIT_FIRST
+    BREQ HD_MON_NEAR
+    MOV TMP, EDIT
+    CPI TMP, EDIT_LAST
+    BREQ HD_DAY_NEAR
+    RJMP HD_WAIT_REL
+
+HD_MON_NEAR:
+    RJMP DEC_MONTH
+HD_DAY_NEAR:
+    RJMP DEC_DAY
+
+HD_HORA:
+    MOV TMP, EDIT
+    CPI TMP, EDIT_FIRST
+    BREQ HD_HOUR_NEAR
+    MOV TMP, EDIT
+    CPI TMP, EDIT_LAST
+    BREQ HD_MIN_NEAR
+
+HD_WAIT_REL:
+    SBIS PINB, BTN_DOWN
+    RJMP HD_WAIT_REL
+    RET
+
+HD_HOUR_NEAR:
+    RJMP DEC_HOUR
+HD_MIN_NEAR:
+    RJMP DEC_MIN
+
+; =========================
+; INC / DEC HORA
+; =========================
+INC_HOUR:
+    INC HOURS
+    MOV TMP, HOURS
+    CPI TMP, 24
+    BRLO IH_WAIT
+    CLR HOURS
+IH_WAIT:
+    SBIS PINB, BTN_UP
+    RJMP IH_WAIT
+    RET
+
+INC_MIN:
+    INC MINS
+    MOV TMP, MINS
+    CPI TMP, 60
+    BRLO IM_WAIT
+    CLR MINS
+IM_WAIT:
+    SBIS PINB, BTN_UP
+    RJMP IM_WAIT
+    RET
+
+DEC_HOUR:
+    MOV TMP, HOURS
+    TST TMP
+    BRNE DH_OK
+    LDI HOURS, 23
+    RJMP DH_WAIT
+DH_OK:
+    DEC HOURS
+DH_WAIT:
+    SBIS PINB, BTN_DOWN
+    RJMP DH_WAIT
+    RET
+
+DEC_MIN:
+    MOV TMP, MINS
+    TST TMP
+    BRNE DM_OK
+    LDI MINS, 59
+    RJMP DM_WAIT
+DM_OK:
+    DEC MINS
+DM_WAIT:
+    SBIS PINB, BTN_DOWN
+    RJMP DM_WAIT
+    RET
+
+; =========================
+; INC / DEC FECHA
+; =========================
+INC_MONTH:
+    INC MONTHS
+    MOV TMP, MONTHS
+    CPI TMP, 13
+    BRLO INCM_OK
+    LDI TMP, 1
+    MOV MONTHS, TMP
+INCM_OK:
+    RCALL CLAMP_DAY_TO_MONTH
+INCM_WAIT:
+    SBIS PINB, BTN_UP
+    RJMP INCM_WAIT
+    RET
+
+INC_DAY:
+    INC DAYS
+    RCALL CLAMP_OR_WRAP_DAY
+INCD_WAIT:
+    SBIS PINB, BTN_UP
+    RJMP INCD_WAIT
+    RET
+
+DEC_MONTH:
+    MOV TMP, MONTHS
+    CPI TMP, 1
+    BRNE DECM_OK
+    LDI TMP, 12
+    MOV MONTHS, TMP
+    RJMP DECM_DONE
+DECM_OK:
+    DEC MONTHS
+DECM_DONE:
+    RCALL CLAMP_DAY_TO_MONTH
+DECM_WAIT:
+    SBIS PINB, BTN_DOWN
+    RJMP DECM_WAIT
+    RET
+
+DEC_DAY:
+    MOV TMP, DAYS
+    CPI TMP, 1
+    BRNE DECD_OK
+    RCALL LOAD_MAX_DAY
+    MOV DAYS, TMP
+    RJMP DECD_WAIT
+DECD_OK:
+    DEC DAYS
+DECD_WAIT:
+    SBIS PINB, BTN_DOWN
+    RJMP DECD_WAIT
+    RET
+
+; =========================
+; INC / DEC ALARMA
+; =========================
+INC_ALM_HOUR:
+    INC ALM_HOURS
+    MOV TMP, ALM_HOURS
+    CPI TMP, 24
+    BRLO IAH_WAIT
+    CLR ALM_HOURS
+IAH_WAIT:
+    SBIS PINB, BTN_UP
+    RJMP IAH_WAIT
+    RET
+
+INC_ALM_MIN:
+    INC ALM_MINS
+    MOV TMP, ALM_MINS
+    CPI TMP, 60
+    BRLO IAM_WAIT
+    CLR ALM_MINS
+IAM_WAIT:
+    SBIS PINB, BTN_UP
+    RJMP IAM_WAIT
+    RET
+
+DEC_ALM_HOUR:
+    MOV TMP, ALM_HOURS
+    TST TMP
+    BRNE DAH_OK
+    LDI TMP, 23
+    MOV ALM_HOURS, TMP
+    RJMP DAH_WAIT
+DAH_OK:
+    DEC ALM_HOURS
+DAH_WAIT:
+    SBIS PINB, BTN_DOWN
+    RJMP DAH_WAIT
+    RET
+
+DEC_ALM_MIN:
+    MOV TMP, ALM_MINS
+    TST TMP
+    BRNE DAM_OK
+    LDI TMP, 59
+    MOV ALM_MINS, TMP
+    RJMP DAM_WAIT
+DAM_OK:
+    DEC ALM_MINS
+DAM_WAIT:
+    SBIS PINB, BTN_DOWN
+    RJMP DAM_WAIT
+    RET
+
+; =========================
+; VALIDACIÓN DE MES
+; =========================
+CLAMP_OR_WRAP_DAY:
+    RCALL LOAD_MAX_DAY
+    ; TMP = max day
+    CP DAYS, TMP
+    BREQ COWD_OK
+    BRLO COWD_OK
+    LDI TMP2, 1
+    MOV DAYS, TMP2
+COWD_OK:
+    RET
+
+CLAMP_DAY_TO_MONTH:
+    RCALL LOAD_MAX_DAY
+    ; si DAYS > max => DAYS = max
+    CP TMP, DAYS
+    BRLO CDTM_DO
+    RET
+CDTM_DO:
+    MOV DAYS, TMP
+    RET
+
+LOAD_MAX_DAY:
+    MOV TMP, MONTHS
+    CPI TMP, 2
+    BREQ LMD_28
+
+    MOV TMP, MONTHS
+    CPI TMP, 4
+    BREQ LMD_30
+    MOV TMP, MONTHS
+    CPI TMP, 6
+    BREQ LMD_30
+    MOV TMP, MONTHS
+    CPI TMP, 9
+    BREQ LMD_30
+    MOV TMP, MONTHS
+    CPI TMP, 11
+    BREQ LMD_30
+
+    LDI TMP, 31
+    RET
+
+LMD_30:
+    LDI TMP, 30
+    RET
+
+LMD_28:
+    LDI TMP, 28
+    RET
+
+INCREMENT_DAY_AUTO:
+    INC DAYS
+    RCALL CLAMP_OR_WRAP_DAY
+
+    MOV TMP, DAYS
+    CPI TMP, 1
+    BRNE IDA_DONE
+
+    INC MONTHS
+    MOV TMP, MONTHS
+    CPI TMP, 13
+    BRLO IDA_DONE
+
+    LDI TMP, 1
+    MOV MONTHS, TMP
+
+IDA_DONE:
+    RET
+
+; =========================
+; DEBOUNCE
+; =========================
+DEBOUNCE:
+    LDI TMP, 200
+DB_LOOP:
+    DEC TMP
+    BRNE DB_LOOP
+    RET
+
+; =========================
+; SEGMENTOS
+; TMP = 0..9 o 10=blank
+; =========================
+SEGMENT:
+    MOV TMP2, TMP
+    CPI TMP2, 0
+    BREQ S0
+    CPI TMP2, 1
+    BREQ S1
+    CPI TMP2, 2
+    BREQ S2
+    CPI TMP2, 3
+    BREQ S3
+    CPI TMP2, 4
+    BREQ S4
+    CPI TMP2, 5
+    BREQ S5
+    CPI TMP2, 6
+    BREQ S6
+    CPI TMP2, 7
+    BREQ S7
+    CPI TMP2, 8
+    BREQ S8
+    CPI TMP2, 10
+    BREQ SBLANK
+    RJMP S9
+
+S0:      LDI TMP2, 0b00111111
+         RJMP OUTSEG
+S1:      LDI TMP2, 0b00000110
+         RJMP OUTSEG
+S2:      LDI TMP2, 0b01011011
+         RJMP OUTSEG
+S3:      LDI TMP2, 0b01001111
+         RJMP OUTSEG
+S4:      LDI TMP2, 0b01100110
+         RJMP OUTSEG
+S5:      LDI TMP2, 0b01101101
+         RJMP OUTSEG
+S6:      LDI TMP2, 0b01111101
+         RJMP OUTSEG
+S7:      LDI TMP2, 0b00000111
+         RJMP OUTSEG
+S8:      LDI TMP2, 0b01111111
+         RJMP OUTSEG
+S9:      LDI TMP2, 0b01101111
+         RJMP OUTSEG
+SBLANK:  LDI TMP2, 0b00000000
+
+OUTSEG:
+    OUT PORTD, TMP2
+    RET
+
+; =========================
+; DIV10 / MOD10
+; =========================
+DIV10:
+    CLR TMP2
+DIV10_LOOP:
+    CPI TMP, 10
+    BRLO DIV10_DONE
+    SUBI TMP, 10
+    INC TMP2
+    RJMP DIV10_LOOP
+DIV10_DONE:
+    MOV TMP, TMP2
+    RET
+
+MOD10:
+MOD10_LOOP:
+    CPI TMP, 10
+    BRLO MOD10_DONE
+    SUBI TMP, 10
+    RJMP MOD10_LOOP
+MOD10_DONE:
+    RET
