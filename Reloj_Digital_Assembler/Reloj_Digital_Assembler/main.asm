@@ -1162,7 +1162,7 @@ LOAD_MAX_DAY:
     MOV TMP, MONTHS
     CPI TMP, 11
     BREQ LMD_30
-	g
+	
     ; Resto de meses tienen 31 dias
     LDI TMP, 31
     RET
