@@ -5,11 +5,6 @@
  */ 
 
 
-/*
- * PostLab4.c
- *
- * Author : luisg
- */
 
 // LIBRERIAS QUE VOY A USAR
 #include <avr/io.h>
