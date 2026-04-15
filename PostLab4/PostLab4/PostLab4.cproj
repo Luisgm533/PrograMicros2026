@@ -12,9 +12,9 @@
     <OutputFileName>$(MSBuildProjectName)</OutputFileName>
     <OutputFileExtension>.elf</OutputFileExtension>
     <OutputDirectory>$(MSBuildProjectDirectory)\$(Configuration)</OutputDirectory>
-    <AssemblyName>Prelab4</AssemblyName>
-    <Name>Prelab4</Name>
-    <RootNamespace>Prelab4</RootNamespace>
+    <AssemblyName>PostLab4</AssemblyName>
+    <Name>PostLab4</Name>
+    <RootNamespace>PostLab4</RootNamespace>
     <ToolchainFlavour>Native</ToolchainFlavour>
     <KeepTimersRunning>true</KeepTimersRunning>
     <OverrideVtor>false</OverrideVtor>
