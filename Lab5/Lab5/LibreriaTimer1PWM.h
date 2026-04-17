@@ -11,6 +11,5 @@
 
 void init_timer1(void);
 void TIMER1_PWM1_set_servo_PW(uint8_t value);
-void TIMER1_PWM2_set_servo_PW(uint8_t value);
 
 #endif

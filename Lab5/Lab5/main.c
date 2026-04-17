@@ -1,5 +1,5 @@
 /*
- * PreLab5.c
+ * Lab5.c
  *
  * Author : luisg
  */ 
@@ -10,20 +10,17 @@
 #include <stdint.h>
 #include "LibreriaTimer1PWM.h"
 #include "LibreriaADC.h"
-
+#include "LibreriaTimer2PWM.h"
 
 // ======================================
 // VARIABLES GLOBALES
 // ======================================
 volatile uint8_t adc_channel_actual = 0;
-static uint8_t pin_pwm_manual = PD3;
 
 // ======================================
 // PROTOTIPOS
 // ======================================
 void init_timer0(void);
-void init_timer2_pwm_manual(void);
-void timer2_set_pwm(uint8_t duty);
 
 // ======================================
 // MAIN
@@ -32,10 +29,10 @@ int main(void)
 {
     cli();
 
-    setup_adc();               // ADC
-    init_timer0();             // Trigger ADC
-    init_timer1();             // PWM servos
-    init_timer2_pwm_manual();  // PWM LED
+    setup_adc();          // ADC
+    init_timer0();        // Trigger ADC
+    init_timer1();        // Servo 1 en D9 con Timer1
+    init_timer2_all();    // Servo 2 en D11 + LED en D3 con Timer2
 
     sei();
 
@@ -65,33 +62,6 @@ void init_timer0(void)
 }
 
 // ======================================
-// TIMER2 - PWM MANUAL LED
-// ======================================
-void init_timer2_pwm_manual(void)
-{
-    TCCR2A = 0; 
-    TCCR2B = 0;
-
-    // Prescaler 8
-    TCCR2B |= (1 << CS21);
-
-    // Interrupciones
-    TIMSK2 |= (1 << TOIE2) | (1 << OCIE2A);
-
-    // PD3 salida
-    DDRD |= (1 << pin_pwm_manual);
-
-    PORTD &= ~(1 << pin_pwm_manual);
-
-    OCR2A = 0;
-}
-
-void timer2_set_pwm(uint8_t duty) 
-{
-    OCR2A = duty;
-}
-
-// ======================================
 // ISR TIMER0
 // ======================================
 ISR(TIMER0_OVF_vect)
@@ -103,6 +73,7 @@ ISR(TIMER0_OVF_vect)
 // ======================================
 // ISR ADC (3 CANALES)
 // ======================================
+
 ISR(ADC_vect)
 {
     uint8_t lectura = ADCH;
@@ -110,38 +81,21 @@ ISR(ADC_vect)
     switch (adc_channel_actual)
     {
         case 0:
-            TIMER1_PWM1_set_servo_PW(lectura);
+            TIMER1_PWM1_set_servo_PW(lectura); // Servo 1 -> D9
             adc_channel_actual = 1;
             adc_set_channel(1);
             break;
 
         case 1:
-            TIMER1_PWM2_set_servo_PW(lectura);
+            timer2_set_servo2(lectura);        // Servo 2 -> D11
             adc_channel_actual = 2;
             adc_set_channel(2);
             break;
 
         case 2:
-            timer2_set_pwm(lectura);
+            timer2_set_led(lectura);           // LED -> D3
             adc_channel_actual = 0;
             adc_set_channel(0);
             break;
     }
-}
-
-// ======================================
-// TIMER2 - INICIO PWM
-// ======================================
-
-ISR(TIMER2_OVF_vect)
-{
-    PORTD |= (1 << pin_pwm_manual); // Para encender
-}
-
-// ======================================
-// TIMER2 - FIN PWM
-// ======================================
-ISR(TIMER2_COMPA_vect)
-{
-    PORTD &= ~(1 << pin_pwm_manual); // Para apagar
 }
