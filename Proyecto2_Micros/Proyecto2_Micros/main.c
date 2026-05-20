@@ -70,12 +70,18 @@ static void modo_manual(void) //Funcion de modo manual
 
 	mover_servos(servo_pos); // Mueve la posicion del servo
 
-	if (BUTTON_SavePressed()) // Condicion si apachamos el boton, guardamos la posicion en la EEPROM
-	{
-		EEPROM_SavePosition(servo_pos);
-		USART_SendString("Posicion guardada en EEPROM\r\n");
-		_delay_ms(300);
-	}
+if (BUTTON_SavePressed())
+{
+	EEPROM_SavePosition(servo_pos);
+
+	uint8_t total = EEPROM_GetSavedCount();
+
+	USART_SendString("SAVE:");
+	USART_SendChar(total + '0');
+	USART_SendString("\r\n");
+
+	_delay_ms(300);
+}
 }
 
 static void modo_eeprom(void)
@@ -124,6 +130,14 @@ static void procesar_comando(char *buffer) // Procesador de Commandos, es decir 
 			LEDS_SetMode(LED_MODE_UART);
 			USART_SendString("Modo Adafruit activo\r\n");
 		}
+		
+		else if (buffer[0] == 'C') // Si llega el comando C, se limpia la EEPROM
+		{
+			EEPROM_ClearAll();
+			reproducir_eeprom = 0;
+			USART_SendString("EEPROM borrada\r\n");
+		}
+		
 	}
 	
 // Aquí se le envian las posiciones de cada servo en el modo Adafuit para que las interprete y pueda moverse hacia donde se requiere	
@@ -170,7 +184,7 @@ int main(void) //Declara el buffer..
 	LEDS_SetMode(LED_MODE_UART); // Después prende LED de Adafruit porque iniciamos en ese modo
 
 	USART_SendString("Sistema iniciado\r\n");
-	USART_SendString("Comandos: M1, M2, M3, R, S1000,1500,1200,1800\r\n");
+	USART_SendString("Comandos: M1, M2, M3, R, C, S1000,1500,1200,1800\r\n");
 
 	while (1) // Aquí vive todo el ciclo
 	{
