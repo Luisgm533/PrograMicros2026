@@ -153,7 +153,7 @@ static void procesar_comando(char *buffer) // Procesador de Commandos, es decir 
 	}
 }
 
-int main(void) //Declara el buffer
+int main(void) //Declara el buffer..
 {
 	char buffer[32]; // Ese buffer guarda lo que llega por serial.
 
