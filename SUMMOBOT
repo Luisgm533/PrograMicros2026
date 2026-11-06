@@ -1,0 +1,213 @@
+
+#include <Bluepad32.h>
+
+ControllerPtr myController = nullptr;
+
+// =======================================
+// PINES TB6612FNG - MAYABOT
+// =======================================
+
+// Motor izquierdo
+#define AIN1 12
+#define AIN2 27
+#define PWMA 25
+
+// Motor derecho
+#define BIN1 33
+#define BIN2 2
+#define PWMB 32
+
+// Standby
+#define STBY 13
+
+// Zona muerta del joystick
+#define DEADZONE 50
+
+// =======================================
+// MOTOR IZQUIERDO
+// =======================================
+
+void moverMotorIzquierdo(int velocidad) {
+  velocidad = constrain(velocidad, -255, 255);
+
+  if (velocidad > 0) {
+    digitalWrite(AIN1, HIGH);
+    digitalWrite(AIN2, LOW);
+    analogWrite(PWMA, velocidad);
+  }
+  else if (velocidad < 0) {
+    digitalWrite(AIN1, LOW);
+    digitalWrite(AIN2, HIGH);
+    analogWrite(PWMA, -velocidad);
+  }
+  else {
+    digitalWrite(AIN1, LOW);
+    digitalWrite(AIN2, LOW);
+    analogWrite(PWMA, 0);
+  }
+}
+
+// =======================================
+// MOTOR DERECHO
+// =======================================
+
+void moverMotorDerecho(int velocidad) {
+  velocidad = constrain(velocidad, -255, 255);
+
+  if (velocidad > 0) {
+    digitalWrite(BIN1, HIGH);
+    digitalWrite(BIN2, LOW);
+    analogWrite(PWMB, velocidad);
+  }
+  else if (velocidad < 0) {
+    digitalWrite(BIN1, LOW);
+    digitalWrite(BIN2, HIGH);
+    analogWrite(PWMB, -velocidad);
+  }
+  else {
+    digitalWrite(BIN1, LOW);
+    digitalWrite(BIN2, LOW);
+    analogWrite(PWMB, 0);
+  }
+}
+
+// =======================================
+// DETENER MOTORES
+// =======================================
+
+void detenerMotores() {
+  moverMotorIzquierdo(0);
+  moverMotorDerecho(0);
+}
+
+// =======================================
+// CONTROL PS4
+// =======================================
+
+void controlarMotores(ControllerPtr ctl) {
+
+  int x = ctl->axisX();
+  int y = ctl->axisY();
+
+  // Zona muerta
+  if (abs(x) < DEADZONE) x = 0;
+  if (abs(y) < DEADZONE) y = 0;
+
+  // Invertir eje Y
+  y = -y;
+
+  // Convertir a PWM
+  int avance = map(y, -512, 512, -255, 255);
+  int giro = map(x, -512, 512, -255, 255);
+
+  if (x == 0) giro = 0;
+  if (y == 0) avance = 0;
+
+  // Traccion diferencial
+  int motorIzquierdo = avance + giro;
+  int motorDerecho = avance - giro;
+
+  // Normalizar para mantener proporcion
+  int maxPWM = max(abs(motorIzquierdo),
+                   abs(motorDerecho));
+
+  if (maxPWM > 255) {
+    motorIzquierdo = motorIzquierdo * 255 / maxPWM;
+    motorDerecho = motorDerecho * 255 / maxPWM;
+  }
+
+  // Activar ambos motores
+  moverMotorIzquierdo(motorIzquierdo);
+  moverMotorDerecho(motorDerecho);
+
+  // Monitor serial
+  Serial.print("X: ");
+  Serial.print(x);
+
+  Serial.print(" Y: ");
+  Serial.print(y);
+
+  Serial.print(" MI: ");
+  Serial.print(motorIzquierdo);
+
+  Serial.print(" MD: ");
+  Serial.println(motorDerecho);
+}
+
+// =======================================
+// CONTROL CONECTADO
+// =======================================
+
+void onConnectedController(ControllerPtr ctl) {
+  Serial.println("Control PS4 conectado");
+
+  myController = ctl;
+  ctl->setColorLED(0, 0, 255);
+}
+
+// =======================================
+// CONTROL DESCONECTADO
+// =======================================
+
+void onDisconnectedController(ControllerPtr ctl) {
+  if (myController == ctl) {
+    myController = nullptr;
+    detenerMotores();
+  }
+
+  Serial.println("Control desconectado");
+}
+
+// =======================================
+// SETUP
+// =======================================
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(AIN1, OUTPUT);
+  pinMode(AIN2, OUTPUT);
+  pinMode(PWMA, OUTPUT);
+
+  pinMode(BIN1, OUTPUT);
+  pinMode(BIN2, OUTPUT);
+  pinMode(PWMB, OUTPUT);
+
+  pinMode(STBY, OUTPUT);
+
+  // Inicialmente desactivado
+  digitalWrite(STBY, LOW);
+  detenerMotores();
+
+  // Activar puente H
+  digitalWrite(STBY, HIGH);
+
+  BP32.setup(
+    &onConnectedController,
+    &onDisconnectedController
+  );
+
+  Serial.println("MayaBot listo!");
+  Serial.println("Esperando control PS4...");
+}
+
+// =======================================
+// LOOP
+// =======================================
+
+void loop() {
+  bool dataUpdated = BP32.update();
+
+  if (myController &&
+      myController->isConnected()) {
+
+    if (dataUpdated && myController->hasData()) {
+      controlarMotores(myController);
+    }
+  }
+  else {
+    detenerMotores();
+  }
+
+  delay(10);
+}
